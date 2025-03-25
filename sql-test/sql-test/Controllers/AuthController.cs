@@ -4,24 +4,25 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using sql_test.Buisness;
 using System.Net;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 [ApiController]
 [Route("auth")]
-[ProducesResponseType(302)]
-public class AuthController(IUserService _userService) : ControllerBase
+public class AuthController(IUserService _userService, IConfiguration _configuration) : ControllerBase
 {
     private bool IsRedirectUriAllowed(string redirectUri)
     {
-        var allowedOrigins =  _configuration.GetValue<string>("AllowedRedirectOrigins");
+        var allowedOrigins = _configuration.GetValue<string>("AllowedRedirectOrigins");
         return !redirectUri.StartsWith("/")
         && allowedOrigins != null
         && allowedOrigins.Any(origin => redirectUri.StartsWith($"{origin}/"));
     }
 
      [HttpGet("signin")]
+     [ProducesResponseType(302)]
      public IActionResult SignIn([FromQuery] string redirectUri = "/auth/userinfo")
     {
-        if (IsRedirectUriAllowed(redirectUri))
+        if (!IsUnknownRedirectUri(redirectUri))
         {
             return BadRequest();
         }
@@ -38,6 +39,8 @@ public class AuthController(IUserService _userService) : ControllerBase
     [ProducesResponseType(302)]
     public async Task<IActionResult> HandleCallback([FromQuery] string redirectUri = "/auth/userinfo")
     {
+        await _userService.HandleSuccessfulSignin(HttpContext.User.Claims);
+
         if (IsRedirectUriAllowed(redirectUri))
         {
             return BadRequest();
@@ -55,4 +58,16 @@ public class AuthController(IUserService _userService) : ControllerBase
         return Ok(user);
     }
 
+    public bool IsUnknownRedirectUri(string redirectUri)
+    {
+        var allowedOrigins = _configuration.GetValue<string[]>("AllowedOrigins");
+        return !redirectUri.StartsWith("/") && !allowedOrigins.Any(origin => redirectUri.StartsWith(origin));
+    }
+
+    [HttpGet("signout")]
+    public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync();
+        return Ok();
+    }
 }

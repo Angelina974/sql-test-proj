@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using sql_test.Buisness;
 using sql_test.DataAccesses;
 
@@ -56,10 +57,11 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    // Options.Cookie.SameSite = SameSiteMode.None;
     app.UseSwagger();
     app.UseSwaggerUI();
 
-    // Génère la BDD si nécessaire 
+    // Gï¿½nï¿½re la BDD si nï¿½cessaire 
     //var serviceScope = app.Services.CreateScope();
     //var context = serviceScope.ServiceProvider.GetService<ApplicationDbContext>();
     //context?.Database.EnsureCreated();
